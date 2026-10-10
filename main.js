@@ -4,6 +4,7 @@ let gl;                         // The webgl context.
 let surface;                    // A surface model
 let shProgram;                  // A shader program
 let spaceball;                  // A SimpleRotator object that lets the user rotate the view by mouse.
+let lightAngle = 0;             // Current position of the light source on its circular path
 
 function deg2rad(angle) {
     return angle * Math.PI / 180;
@@ -64,9 +65,10 @@ function draw() {
     surface.Draw();
 }
 
-/* Position of the point light source */
+/* The light source runs along a circle around the surface */
 function LightPosition() {
-    return [14, 0, 8];
+    const radius = 14;
+    return [radius * Math.cos(lightAngle), radius * Math.sin(lightAngle), 8];
 }
 
 
@@ -76,6 +78,13 @@ function NormalMatrix(modelView) {
     return [m[0], m[1], m[2],
             m[4], m[5], m[6],
             m[8], m[9], m[10]];
+}
+
+
+function animate() {
+    lightAngle += 0.01;
+    draw();
+    window.requestAnimationFrame(animate);
 }
 
 
@@ -161,5 +170,5 @@ function init() {
 
     spaceball = new TrackballRotator(canvas, draw, 0);
 
-    draw();
+    animate();
 }
