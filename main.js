@@ -55,7 +55,6 @@ function draw() {
     let modelViewProjection = m4.multiply(projection, matAccum1 );
 
     gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection );
-    
     gl.uniformMatrix4fv(shProgram.iModelViewMatrix, false, matAccum1 );
     gl.uniformMatrix3fv(shProgram.iNormalMatrix, false, NormalMatrix(matAccum1) );
 
@@ -142,6 +141,30 @@ function createProgram(gl, vShader, fShader) {
 }
 
 
+/* Connects the granularity sliders with the surface */
+function initControls() {
+    const uInput = document.getElementById("uSegments");
+    const vInput = document.getElementById("vSegments");
+
+    uInput.value = uSegments;
+    vInput.value = vSegments;
+    document.getElementById("uSegments-value").textContent = uSegments;
+    document.getElementById("vSegments-value").textContent = vSegments;
+
+    uInput.addEventListener("input", () => {
+        uSegments = parseInt(uInput.value);
+        document.getElementById("uSegments-value").textContent = uSegments;
+        surface.BufferData(CreateSurfaceData());
+    });
+
+    vInput.addEventListener("input", () => {
+        vSegments = parseInt(vInput.value);
+        document.getElementById("vSegments-value").textContent = vSegments;
+        surface.BufferData(CreateSurfaceData());
+    });
+}
+
+
 /**
  * initialization function that will be called when the page has loaded
  */
@@ -167,6 +190,8 @@ function init() {
             "<p>Sorry, could not initialize the WebGL graphics context: " + e + "</p>";
         return;
     }
+
+    initControls();
 
     spaceball = new TrackballRotator(canvas, draw, 0);
 
