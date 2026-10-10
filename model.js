@@ -2,9 +2,8 @@
 
 const a = 1, b = 1, c = 1;
 
-const uSegments = 60, vSegments = 40;
-const uCurves = 30, vCurves = 40;
-
+let uSegments = 100;
+let vSegments = 60;
 
 function snailPoint(u, v) {
     return [a * u * Math.sin(u) * Math.cos(v),
@@ -12,58 +11,47 @@ function snailPoint(u, v) {
             -c * u * Math.sin(v)];
 }
 
-
 function CreateSurfaceData() {
     const vertices = [];
-    const uPolylines = [];
-    const vPolylines = [];
+    const indices = [];
 
-    for (let i = 0; i < uCurves; i++) {
-        const v = -Math.PI + 2 * Math.PI * i / (uCurves - 1);
-        const first = vertices.length / 3;
-
-        for (let j = 0; j <= uSegments; j++) {
-            const u = 2 * Math.PI * j / uSegments;
-            vertices.push( ...snailPoint(u, v) );
-        }
-
-        uPolylines.push({ first: first, count: uSegments + 1 });
-    }
-
-    for (let i = 0; i < vCurves; i++) {
-        const u = 2 * Math.PI * i / (vCurves - 1);
-        const first = vertices.length / 3;
-
+    for (let i = 0; i <= uSegments; i++) {
+        const u = 2 * Math.PI * i / uSegments;
         for (let j = 0; j <= vSegments; j++) {
             const v = -Math.PI + 2 * Math.PI * j / vSegments;
             vertices.push( ...snailPoint(u, v) );
         }
-
-        vPolylines.push({ first: first, count: vSegments + 1 });
     }
 
-    return { vertices: vertices, uPolylines: uPolylines, vPolylines: vPolylines };
-}
+    for (let i = 0; i < uSegments; i++) {
+        for (let j = 0; j < vSegments; j++) {
+            const i0 = i * (vSegments + 1) + j;
+            const i1 = i0 + 1;
+            const i2 = i0 + vSegments + 1;
+            const i3 = i2 + 1;
+            indices.push(i0, i2, i1);
+            indices.push(i1, i2, i3);
+        }
+    }
 
+    return { vertices: vertices, indices: indices };
+}
 
 // Constructor
 function Model(name) {
     this.name = name;
     this.iVertexBuffer = gl.createBuffer();
-    this.uPolylines = [];
-    this.vPolylines = [];
+    this.iIndexBuffer = gl.createBuffer();
+    this.count = 0;
 
     this.BufferData = function(data) {
-        this.uPolylines = data.uPolylines;
-        this.vPolylines = data.vPolylines;
-
         gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data.vertices), gl.STREAM_DRAW);
-    }
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data.vertices), gl.STATIC_DRAW);
 
-    this.DrawPolylines = function(polylines) {
-        for (let i = 0; i < polylines.length; i++)
-            gl.drawArrays(gl.LINE_STRIP, polylines[i].first, polylines[i].count);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.iIndexBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(data.indices), gl.STATIC_DRAW);
+
+        this.count = data.indices.length;
     }
 
     this.Draw = function() {
@@ -71,10 +59,7 @@ function Model(name) {
         gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(shProgram.iAttribVertex);
 
-        gl.uniform4fv(shProgram.iColor, [1, 1, 0, 1]);
-        this.DrawPolylines(this.uPolylines);
-
-        gl.uniform4fv(shProgram.iColor, [0, 0.7, 1, 1]);
-        this.DrawPolylines(this.vPolylines);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.iIndexBuffer);
+        gl.drawElements(gl.TRIANGLES, this.count, gl.UNSIGNED_SHORT, 0);
     }
 }
