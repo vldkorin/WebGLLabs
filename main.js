@@ -18,10 +18,14 @@ function ShaderProgram(name, program) {
 
     // Location of the attribute variable in the shader program.
     this.iAttribVertex = -1;
+    this.iAttribNormal = -1;
     // Location of the uniform specifying a color for the primitive.
     this.iColor = -1;
     // Location of the uniform matrix representing the combined transformation.
     this.iModelViewProjectionMatrix = -1;
+    this.iModelViewMatrix = -1;
+    this.iNormalMatrix = -1;
+    this.iLightPosition = -1;
 
     this.Use = function() {
         gl.useProgram(this.prog);
@@ -51,10 +55,29 @@ function draw() {
 
     gl.uniformMatrix4fv(shProgram.iModelViewProjectionMatrix, false, modelViewProjection );
     
+    gl.uniformMatrix4fv(shProgram.iModelViewMatrix, false, matAccum1 );
+    gl.uniformMatrix3fv(shProgram.iNormalMatrix, false, NormalMatrix(matAccum1) );
+
+    gl.uniform3fv(shProgram.iLightPosition, m4.transformPoint(matAccum1, LightPosition()) );
     gl.uniform4fv(shProgram.iColor, [0.75, 0.75, 0.78, 1.0] );
 
     surface.Draw();
 }
+
+/* Position of the point light source */
+function LightPosition() {
+    return [14, 0, 8];
+}
+
+
+/* Upper left 3x3 of the inverse transposed model view matrix */
+function NormalMatrix(modelView) {
+    const m = m4.transpose(m4.inverse(modelView));
+    return [m[0], m[1], m[2],
+            m[4], m[5], m[6],
+            m[8], m[9], m[10]];
+}
+
 
 /* Initialize the WebGL context. Called from init() */
 function initGL() {
@@ -64,7 +87,11 @@ function initGL() {
     shProgram.Use();
 
     shProgram.iAttribVertex              = gl.getAttribLocation(prog, "vertex");
+    shProgram.iAttribNormal              = gl.getAttribLocation(prog, "normal");
     shProgram.iModelViewProjectionMatrix = gl.getUniformLocation(prog, "ModelViewProjectionMatrix");
+    shProgram.iModelViewMatrix           = gl.getUniformLocation(prog, "ModelViewMatrix");
+    shProgram.iNormalMatrix              = gl.getUniformLocation(prog, "NormalMatrix");
+    shProgram.iLightPosition             = gl.getUniformLocation(prog, "lightPosition");
     shProgram.iColor                     = gl.getUniformLocation(prog, "color");
 
     surface = new Model('Surface');
